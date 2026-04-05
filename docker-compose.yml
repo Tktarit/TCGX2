@@ -1,0 +1,31 @@
+services:
+  n8n:
+    image: n8nio/n8n
+    ports:
+      - "5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend/uploads:/app/uploads
+      - ./backend/tcgx2.db:/app/tcgx2.db
+    environment:
+      - DATABASE_URL=sqlite:///./tcgx2.db
+      - UPLOAD_DIR=uploads
+      - N8N_WEBHOOK_URL=http://n8n:5678/webhook/grade-card
+    depends_on:
+      - n8n
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
+volumes:
+  n8n_data:
