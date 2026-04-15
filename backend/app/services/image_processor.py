@@ -1,25 +1,51 @@
-"""
-OpenCV-based image analysis pipeline for trading cards.
-
-Each method returns a score from 0–100:
-  100 = perfect condition
-    0 = severe damage
-"""
-
 import cv2
 import numpy as np
-from PIL import Image
-from dataclasses import dataclass
-
-from app.services.centering_agent import CenteringAgent
 
 
-@dataclass
-class ImageAnalysis:
-    corner_score: float
-    edge_score: float
-    surface_score: float
-    centering_score: float
+def _imread(path: str) -> np.ndarray | None:
+    """อ่านภาพรองรับทุก format รวมถึง AVIF, HEIC และ Windows path."""
+    # ลอง OpenCV ก่อน (เร็วกว่า, รองรับ jpg/png/webp)
+    buf = np.fromfile(path, dtype=np.uint8)
+    if buf.size == 0:
+        return None
+    img = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+    if img is not None:
+        return img
+    # Fallback: PIL รองรับ AVIF และ format อื่นที่ OpenCV ไม่รองรับ
+    try:
+        from PIL import Image
+        pil = Image.open(path).convert("RGB")
+        return cv2.cvtColor(np.array(pil), cv2.COLOR_RGB2BGR)
+    except Exception:
+        return None
+
+
+def _has_card_edges(img_bgr: np.ndarray) -> bool:
+    """
+    ตรวจว่าภาพมีโครงสร้างสี่เหลี่ยมของการ์ด
+    โดยหาเส้นตรงยาว >= 2 เส้นแนวนอน + >= 2 เส้นแนวตั้ง
+    """
+    gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
+    edges = cv2.Canny(cv2.GaussianBlur(gray, (5, 5), 0), 50, 150)
+    h, w = edges.shape
+    min_len = min(h, w) * 0.25  # เส้นต้องยาวอย่างน้อย 25% ของด้านสั้น
+
+    lines = cv2.HoughLinesP(
+        edges, 1, np.pi / 180,
+        threshold=60, minLineLength=min_len, maxLineGap=30,
+    )
+    if lines is None:
+        return False
+
+    h_count = v_count = 0
+    for x1, y1, x2, y2 in lines[:, 0]:
+        angle = abs(np.degrees(np.arctan2(y2 - y1, x2 - x1)))
+        if angle < 25 or angle > 155:
+            h_count += 1
+        elif 65 < angle < 115:
+            v_count += 1
+
+    return h_count >= 2 and v_count >= 2
 
 
 def crop_card(image_path: str) -> np.ndarray:
@@ -35,7 +61,7 @@ def crop_card(image_path: str) -> np.ndarray:
 
     Raises ValueError if the image cannot be read or no card is found.
     """
-    img_bgr = cv2.imread(image_path)
+    img_bgr = _imread(image_path)
     if img_bgr is None:
         raise ValueError(f"Cannot read image: {image_path}")
 
@@ -52,8 +78,8 @@ def crop_card(image_path: str) -> np.ndarray:
         blockSize=11, C=2,
     )
 
-    # Close small gaps in the card border
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
+    # Close gaps in the card border — รองรับนิ้วที่ถือการ์ด
+    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (15, 15))
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -68,6 +94,21 @@ def crop_card(image_path: str) -> np.ndarray:
         raise ValueError("Largest contour too small — card not detected in image")
 
     x, y, cw, ch = cv2.boundingRect(largest)
+
+    # ตรวจโครงสร้างเส้นตรงของการ์ด — ต้องมีเส้นยาวแนวนอน + แนวตั้ง
+    if not _has_card_edges(img_bgr):
+        raise ValueError("ไม่ใช่การ์ด — ไม่พบขอบสี่เหลี่ยมในภาพ")
+
+    # ใช้ minAreaRect เพื่อรองรับการ์ดที่เอียง — กรอบหมุนตามการ์ดได้
+    _, (rw, rh), _ = cv2.minAreaRect(largest)
+    if rw < 1 or rh < 1:
+        raise ValueError("ไม่ใช่การ์ด — ตรวจจับขอบไม่ได้")
+
+    # Check aspect ratio — trading cards are roughly 1.2:1 to 1.9:1 (portrait or landscape)
+    aspect = max(rw, rh) / min(rw, rh)
+    if aspect < 1.1 or aspect > 2.5:
+        raise ValueError(f"ไม่ใช่การ์ด — สัดส่วนภาพ ({aspect:.2f}) ไม่ตรงกับรูปแบบการ์ดสะสม")
+
     cropped = img_bgr[y: y + ch, x: x + cw]
 
     return cropped
@@ -93,98 +134,5 @@ def normalize_image(image: np.ndarray) -> np.ndarray:
     lab_eq = cv2.merge((l_eq, a, b))
     return cv2.cvtColor(lab_eq, cv2.COLOR_LAB2BGR)
 
-
-def analyze_card(image_path: str) -> ImageAnalysis:
-    img_bgr = cv2.imread(image_path)
-    if img_bgr is None:
-        raise ValueError(f"Cannot read image: {image_path}")
-
-    img_bgr = normalize_image(img_bgr)
-    img_gray = cv2.cvtColor(img_bgr, cv2.COLOR_BGR2GRAY)
-
-    return ImageAnalysis(
-        corner_score=_analyze_corners(img_gray),
-        edge_score=_analyze_edges(img_gray),
-        surface_score=_analyze_surface(img_gray),
-        centering_score=CenteringAgent().analyze(img_bgr) * 10.0,
-    )
-
-
-def _analyze_corners(gray: np.ndarray) -> float:
-    """
-    Detect corner wear using Harris corner detection.
-    Worn corners have fewer sharp corner responses.
-    """
-    h, w = gray.shape
-    corner_size = int(min(h, w) * 0.1)
-
-    regions = [
-        gray[:corner_size, :corner_size],          # top-left
-        gray[:corner_size, w - corner_size:],       # top-right
-        gray[h - corner_size:, :corner_size],       # bottom-left
-        gray[h - corner_size:, w - corner_size:],   # bottom-right
-    ]
-
-    scores = []
-    for region in regions:
-        region_f = np.float32(region)
-        harris = cv2.cornerHarris(region_f, blockSize=2, ksize=3, k=0.04)
-        strong_corners = np.sum(harris > 0.01 * harris.max())
-        # More sharp corner responses = better defined corner = higher score
-        score = min(100.0, strong_corners * 5.0)
-        scores.append(score)
-
-    return float(np.mean(scores))
-
-
-def _analyze_edges(gray: np.ndarray) -> float:
-    """
-    Measure edge straightness and uniformity.
-    Frayed or chipped edges show up as irregular Canny edges.
-    """
-    edges = cv2.Canny(gray, threshold1=50, threshold2=150)
-
-    h, w = gray.shape
-    border = int(min(h, w) * 0.05)
-
-    edge_strips = [
-        edges[:border, :],           # top
-        edges[h - border:, :],       # bottom
-        edges[:, :border],           # left
-        edges[:, w - border:],       # right
-    ]
-
-    scores = []
-    for strip in edge_strips:
-        if strip.size == 0:
-            continue
-        edge_density = np.sum(strip > 0) / strip.size
-        # Ideal: clean line ~10–20% density. Noisy edges = damage.
-        ideal_density = 0.15
-        deviation = abs(edge_density - ideal_density)
-        score = max(0.0, 100.0 - deviation * 300)
-        scores.append(score)
-
-    return float(np.mean(scores)) if scores else 50.0
-
-
-def _analyze_surface(gray: np.ndarray) -> float:
-    """
-    Detect surface scratches and print defects using Laplacian variance.
-    Low variance = smooth surface; very high local variance = scratches.
-    """
-    h, w = gray.shape
-    border = int(min(h, w) * 0.1)
-    surface = gray[border: h - border, border: w - border]
-
-    laplacian = cv2.Laplacian(surface, cv2.CV_64F)
-    local_var = cv2.blur(np.abs(laplacian).astype(np.float32), (15, 15))
-
-    # High-variance patches = defects
-    defect_threshold = float(np.mean(local_var)) + 2 * float(np.std(local_var))
-    defect_ratio = np.sum(local_var > defect_threshold) / local_var.size
-
-    score = max(0.0, 100.0 - defect_ratio * 500)
-    return float(score)
 
 

@@ -115,36 +115,6 @@ def worn_card_bgr():
     return img
 
 
-# ── Surface fixtures ─────────────────────────────────────────────────────────
-
-@pytest.fixture()
-def clean_surface_bgr():
-    """Uniform mid-grey card — no bright spots, no linear scratches."""
-    return np.full((300, 200, 3), 128, dtype=np.uint8)
-
-
-@pytest.fixture()
-def spotted_surface_bgr():
-    """Card with several bright white spots simulating print defects."""
-    img = np.full((300, 200, 3), 128, dtype=np.uint8)
-    for (cx, cy) in [(40, 60), (100, 150), (160, 80), (80, 220), (140, 260)]:
-        cv2.circle(img, (cx, cy), 8, (255, 255, 255), -1)
-    return img
-
-
-@pytest.fixture()
-def scratched_surface_bgr():
-    """Card with several long bright scratch lines."""
-    img = np.full((300, 200, 3), 128, dtype=np.uint8)
-    for (x1, y1, x2, y2) in [
-        (10,  50,  190,  60),
-        (20, 120,  180, 130),
-        (30, 200,  170, 210),
-    ]:
-        cv2.line(img, (x1, y1), (x2, y2), (255, 255, 255), 2)
-    return img
-
-
 @pytest.fixture()
 def unreadable_image_path(tmp_path):
     """File that exists but is not a valid image."""

@@ -2,6 +2,7 @@ import { useState } from "react";
 import CardUploader from "../components/CardUploader";
 import AnalysisResult from "../components/AnalysisResult";
 import GradeRecommendation from "../components/GradeRecommendation";
+import PriceInfo from "../components/PriceInfo";
 import { analyzeCard } from "../services/api";
 
 export default function Home() {
@@ -9,6 +10,9 @@ export default function Home() {
   const [error, setError] = useState(null);
   const [result, setResult] = useState(null);
   const [originalUrl, setOriginalUrl] = useState(null);
+  const [cardName, setCardName] = useState("");
+  const [cardSet, setCardSet] = useState("");
+  const [uploaderKey, setUploaderKey] = useState(0);
 
   async function handleUpload(file) {
     setLoading(true);
@@ -16,7 +20,11 @@ export default function Home() {
     setResult(null);
     setOriginalUrl(URL.createObjectURL(file));
     try {
-      const data = await analyzeCard(file);
+      const data = await analyzeCard(file, cardName, cardSet);
+      if (data.is_card === false) {
+        setError(`ตรวจไม่พบการ์ด — ${data.reason}`);
+        return;
+      }
       setResult(data);
     } catch (err) {
       const detail = err.response?.data?.detail;
@@ -30,13 +38,32 @@ export default function Home() {
       }
     } finally {
       setLoading(false);
+      setUploaderKey((k) => k + 1);
     }
   }
 
   return (
     <div className="page">
       <h2>Upload a Card</h2>
-      <CardUploader onUpload={handleUpload} loading={loading} />
+      <div className="card-hints">
+        <input
+          className="card-hint-input"
+          type="text"
+          placeholder="Card name (e.g. Charizard) — optional"
+          value={cardName}
+          onChange={(e) => setCardName(e.target.value)}
+          disabled={loading}
+        />
+        <input
+          className="card-hint-input"
+          type="text"
+          placeholder="Set (e.g. Base Set) — optional"
+          value={cardSet}
+          onChange={(e) => setCardSet(e.target.value)}
+          disabled={loading}
+        />
+      </div>
+      <CardUploader key={uploaderKey} onUpload={handleUpload} loading={loading} />
 
       {loading && (
         <div className="spinner-wrapper">
@@ -67,6 +94,7 @@ export default function Home() {
       {result && (
         <>
           <GradeRecommendation result={result} />
+          <PriceInfo result={result} />
           <AnalysisResult result={result} />
         </>
       )}

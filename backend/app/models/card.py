@@ -35,6 +35,15 @@ class AnalysisResult(Base):
     recommend_submit = Column(Boolean, nullable=False)
     recommendation_reason = Column(Text, nullable=False)
 
+    # Card identity & market price (populated by AI price lookup)
+    card_name = Column(String, nullable=True)
+    card_set = Column(String, nullable=True)
+    card_number = Column(String, nullable=True)
+    price_low = Column(Float, nullable=True)
+    price_mid = Column(Float, nullable=True)
+    price_high = Column(Float, nullable=True)
+    price_currency = Column(String, nullable=True)
+
     analyzed_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     card = relationship("Card", back_populates="analysis")

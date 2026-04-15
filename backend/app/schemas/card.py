@@ -14,26 +14,15 @@ class AnalysisResultSchema(BaseModel):
     estimated_psa_grade: int
     recommend_submit: bool
     recommendation_reason: str
+    card_name: str | None = None
+    card_set: str | None = None
+    card_number: str | None = None
+    price_low: float | None = None
+    price_mid: float | None = None
+    price_high: float | None = None
+    price_currency: str | None = None
     analyzed_at: datetime
 
     model_config = {"from_attributes": True}
 
 
-class CardSchema(BaseModel):
-    id: int
-    filename: str
-    original_filename: str
-    file_path: str
-    uploaded_at: datetime
-    analysis: AnalysisResultSchema | None = None
-
-    model_config = {"from_attributes": True}
-
-
-class CardUploadResponse(BaseModel):
-    id: int
-    filename: str
-    original_filename: str
-    uploaded_at: datetime
-
-    model_config = {"from_attributes": True}

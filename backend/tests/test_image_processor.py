@@ -1,5 +1,5 @@
 """
-Tests for CenteringAgent, CornerAgent, SurfaceAgent, and crop_card().
+Tests for CenteringAgent, CornerAgent, and crop_card().
 All agent scores are 0–10.
 """
 
@@ -9,7 +9,6 @@ import pytest
 
 from app.services.centering_agent import CenteringAgent
 from app.services.corner_agent import CornerAgent
-from app.services.surface_agent import SurfaceAgent
 from app.services.image_processor import crop_card
 
 
@@ -129,91 +128,6 @@ class TestCornerAgent:
         """Worn card should not achieve a perfect score."""
         score = CornerAgent().analyze(worn_card_bgr)["score"]
         assert score < 10.0
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# SurfaceAgent
-# ══════════════════════════════════════════════════════════════════════════════
-
-class TestSurfaceAgent:
-
-    # ── Return structure ──────────────────────────────────────────────────────
-
-    def test_returns_required_keys(self, clean_surface_bgr):
-        result = SurfaceAgent().analyze(clean_surface_bgr)
-        assert "defect_count"    in result
-        assert "defect_area_pct" in result
-        assert "score"           in result
-
-    def test_defect_count_is_non_negative_int(self, clean_surface_bgr):
-        count = SurfaceAgent().analyze(clean_surface_bgr)["defect_count"]
-        assert isinstance(count, int)
-        assert count >= 0
-
-    def test_defect_area_pct_is_float_between_0_and_100(self, clean_surface_bgr):
-        pct = SurfaceAgent().analyze(clean_surface_bgr)["defect_area_pct"]
-        assert isinstance(pct, float)
-        assert 0.0 <= pct <= 100.0
-
-    def test_score_in_range(self, clean_surface_bgr):
-        score = SurfaceAgent().analyze(clean_surface_bgr)["score"]
-        assert 0.0 <= score <= 10.0
-
-    # ── Clean surface ─────────────────────────────────────────────────────────
-
-    def test_clean_surface_scores_near_10(self, clean_surface_bgr):
-        """Uniform grey image has no bright spots or lines → score ≈ 10."""
-        result = SurfaceAgent().analyze(clean_surface_bgr)
-        assert result["score"] >= 9.0, (
-            f"Clean surface should score ≥ 9, got {result['score']}"
-        )
-
-    def test_clean_surface_zero_defect_area(self, clean_surface_bgr):
-        result = SurfaceAgent().analyze(clean_surface_bgr)
-        assert result["defect_area_pct"] == 0.0
-
-    # ── Spotted surface ───────────────────────────────────────────────────────
-
-    def test_spots_detected_as_defects(self, spotted_surface_bgr):
-        """Five white circles must register as defects."""
-        result = SurfaceAgent().analyze(spotted_surface_bgr)
-        assert result["defect_count"] > 0
-        assert result["defect_area_pct"] > 0.0
-
-    def test_spotted_scores_lower_than_clean(
-        self, clean_surface_bgr, spotted_surface_bgr
-    ):
-        clean_score   = SurfaceAgent().analyze(clean_surface_bgr)["score"]
-        spotted_score = SurfaceAgent().analyze(spotted_surface_bgr)["score"]
-        assert clean_score > spotted_score, (
-            f"Clean ({clean_score}) should beat spotted ({spotted_score})"
-        )
-
-    # ── Scratched surface ─────────────────────────────────────────────────────
-
-    def test_scratches_detected_as_defects(self, scratched_surface_bgr):
-        """Long bright lines must be detected by HoughLinesP."""
-        result = SurfaceAgent().analyze(scratched_surface_bgr)
-        assert result["defect_count"] > 0
-
-    def test_scratched_scores_lower_than_clean(
-        self, clean_surface_bgr, scratched_surface_bgr
-    ):
-        clean_score    = SurfaceAgent().analyze(clean_surface_bgr)["score"]
-        scratch_score  = SurfaceAgent().analyze(scratched_surface_bgr)["score"]
-        assert clean_score > scratch_score, (
-            f"Clean ({clean_score}) should beat scratched ({scratch_score})"
-        )
-
-    # ── Monotonicity: more damage = lower score ───────────────────────────────
-
-    def test_more_defects_means_higher_defect_area(
-        self, spotted_surface_bgr, scratched_surface_bgr
-    ):
-        """Both damaged cards must have higher defect_area_pct than clean."""
-        clean = SurfaceAgent().analyze(np.full((300, 200, 3), 128, dtype=np.uint8))
-        assert SurfaceAgent().analyze(spotted_surface_bgr)["defect_area_pct"] > clean["defect_area_pct"]
-        assert SurfaceAgent().analyze(scratched_surface_bgr)["defect_area_pct"] > clean["defect_area_pct"]
 
 
 # ══════════════════════════════════════════════════════════════════════════════

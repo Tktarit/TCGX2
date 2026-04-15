@@ -14,6 +14,17 @@ backend/uploads/*
 frontend/node_modules/
 frontend/dist/
 
+# Testing
+backend/.pytest_cache/
+
+# Claude Code
+.claude/
+
+# Temp / dev files
+card3.webp
+code_explanation.md
+agents_overview.txt
+
 # OS
 .DS_Store
 Thumbs.db

@@ -13,11 +13,10 @@ import os
 import base64
 import cv2
 
-from app.services.image_processor import crop_card, normalize_image
+from app.services.image_processor import crop_card, normalize_image, _imread
 from app.services.centering_agent import CenteringAgent
 from app.services.corner_agent import CornerAgent
 from app.services.edge_agent import EdgeAgent
-from app.services.surface_agent import SurfaceAgent
 from app.config import settings
 
 router = APIRouter()
@@ -28,7 +27,7 @@ class FilePathRequest(BaseModel):
 
 
 def _load(file_path: str):
-    img = cv2.imread(file_path)
+    img = _imread(file_path)
     if img is None:
         raise HTTPException(status_code=422, detail=f"Cannot read image: {file_path}")
     return img
@@ -54,8 +53,8 @@ def agent_crop(req: FilePathRequest):
     cropped_path = os.path.join(settings.UPLOAD_DIR, cropped_name)
     cv2.imwrite(cropped_path, cropped)
 
-    # Resize to max 512px on longest side before base64 — reduces AI token cost
-    MAX_PX = 512
+    # Resize to max 256px on longest side before base64 — reduces AI token cost
+    MAX_PX = 256
     ch_full, cw_full = cropped.shape[:2]
     scale = min(MAX_PX / cw_full, MAX_PX / ch_full, 1.0)
     if scale < 1.0:
@@ -64,7 +63,7 @@ def agent_crop(req: FilePathRequest):
     else:
         small = cropped
 
-    _, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 85])
+    _, buf = cv2.imencode(".jpg", small, [cv2.IMWRITE_JPEG_QUALITY, 70])
     cropped_image = "data:image/jpeg;base64," + base64.b64encode(buf).decode()
 
     oh, ow = img.shape[:2]
@@ -118,16 +117,3 @@ def agent_edge(req: FilePathRequest):
     }
 
 
-# ── Surface ───────────────────────────────────────────────────────────────────
-
-@router.post("/surface")
-def agent_surface(req: FilePathRequest):
-    """Detect surface defects. Returns defect count, area %, and score 0–10."""
-    img = _load(req.file_path)
-    img = normalize_image(img)
-    result = SurfaceAgent().analyze(img)
-    return {
-        "defect_count":    result["defect_count"],
-        "defect_area_pct": result["defect_area_pct"],
-        "surface_score":   result["score"],
-    }
