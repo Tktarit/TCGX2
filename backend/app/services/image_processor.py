@@ -1,5 +1,9 @@
 import cv2
 import numpy as np
+from pillow_heif import register_heif_opener, register_avif_opener
+
+register_heif_opener()   # HEIC/HEIF support
+register_avif_opener()   # AVIF support
 
 
 def _imread(path: str) -> np.ndarray | None:

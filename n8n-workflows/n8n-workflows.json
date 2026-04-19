@@ -10,7 +10,10 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2.1,
-      "position": [-208, -64],
+      "position": [
+        -208,
+        -64
+      ],
       "id": "8e1b0603-a85a-407d-b490-064a3738e6ca",
       "name": "Webhook",
       "webhookId": "e5c75035-f41e-4040-95b1-ad8f888a7b8e"
@@ -21,7 +24,10 @@
       },
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
-      "position": [-16, 512],
+      "position": [
+        -16,
+        512
+      ],
       "id": "8a63f0b7-6c7c-4dd8-bf67-52922cc9a0b6",
       "name": "Merge"
     },
@@ -31,7 +37,10 @@
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
-      "position": [640, 1120],
+      "position": [
+        640,
+        1120
+      ],
       "id": "286b4388-b5f6-423f-9f28-45ecb85485d7",
       "name": "Respond to Webhook"
     },
@@ -47,7 +56,10 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [768, 800],
+      "position": [
+        768,
+        800
+      ],
       "id": "d3343a40-aca9-4244-a3df-f368a6fe0793",
       "name": "Anthropic Chat Model",
       "credentials": {
@@ -69,7 +81,10 @@
       },
       "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
       "typeVersion": 1.3,
-      "position": [640, 832],
+      "position": [
+        640,
+        832
+      ],
       "id": "b1c2d3e4-f5a6-7890-abcd-ef1234567890",
       "name": "Anthropic Chat Model 2",
       "credentials": {
@@ -96,7 +111,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [64, 16],
+      "position": [
+        64,
+        16
+      ],
       "id": "c4c83424-af2e-49ae-aa53-f05e73f1ed5d",
       "name": "Preprocessing"
     },
@@ -117,7 +135,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [-352, 304],
+      "position": [
+        -352,
+        304
+      ],
       "id": "0c605c7d-5208-44e9-a13b-eb8372808ec9",
       "name": "centering agent"
     },
@@ -138,7 +159,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [0, 288],
+      "position": [
+        0,
+        288
+      ],
       "id": "9b5c9ab8-401c-4612-86c2-e3f8108cfc3b",
       "name": "corner agent"
     },
@@ -159,7 +183,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [720, 208],
+      "position": [
+        720,
+        208
+      ],
       "id": "fad13dce-ca32-4bbf-ac7b-bd269ed27bf0",
       "name": "edge agent"
     },
@@ -171,19 +198,25 @@
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [416, 304],
+      "position": [
+        416,
+        304
+      ],
       "id": "a5195c47-22f8-49e9-828d-8d5ab1e07f66",
       "name": "surface agent"
     },
     {
       "parameters": {
         "promptType": "define",
-        "text": "=You are a trading card price analyst (Pokemon, Magic: The Gathering, Yu-Gi-Oh, sports cards, etc.).\n\n{{ $json.card_name_hint ? 'Card: ' + $json.card_name_hint + ($json.card_set_hint ? ' | Set: ' + $json.card_set_hint : '') : 'No card name provided. Identify from the image: ' + $json.cropped_image }}\n\nPSA Grade: {{ $json.estimated_psa_grade }}\n\nProvide estimated market price range in USD for this card at this PSA grade.\n\nRespond in raw JSON only, no markdown:\n{\"card_name\":\"<name>\",\"card_set\":\"<set or empty>\",\"card_number\":\"<e.g. 4/102 or empty>\",\"price_low\":<number>,\"price_mid\":<number>,\"price_high\":<number>,\"currency\":\"USD\"}\n\nIf cannot identify, set card_name to \"Unknown\" and prices to 0.",
+        "text": "=You are a trading card price analyst (Pokemon, Magic: The Gathering, Yu-Gi-Oh, sports cards, etc.).\n\nCard hint: {{ $json.card_name_hint || \"Unknown\" }}{{ $json.card_set_hint ? \" | Set: \" + $json.card_set_hint : \"\" }}\nPSA Grade: {{ $json.estimated_psa_grade }}\n\nIf the card name has a typo, correct it and use the closest matching real card.\nProvide estimated market price range in USD for this card at this PSA grade.\n\nRespond in raw JSON only — no markdown, no extra text, nothing after the closing brace:\n{\"card_name\":\"<corrected name>\",\"card_set\":\"<set or empty>\",\"card_number\":\"<e.g. 4/102 or empty>\",\"price_low\":<number>,\"price_mid\":<number>,\"price_high\":<number>,\"currency\":\"USD\"}",
         "batching": {}
       },
       "type": "@n8n/n8n-nodes-langchain.chainLlm",
       "typeVersion": 1.9,
-      "position": [384, 928],
+      "position": [
+        384,
+        928
+      ],
       "id": "f1e2d3c4-b5a6-7890-1234-abcdef567890",
       "name": "price lookup"
     },
@@ -272,7 +305,10 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.4,
-      "position": [-48, 1120],
+      "position": [
+        -48,
+        1120
+      ],
       "id": "8cbaca08-b99f-41b5-961f-ef9255987360",
       "name": "save database"
     },
@@ -282,17 +318,23 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [112, 768],
+      "position": [
+        112,
+        768
+      ],
       "id": "1242375e-ee44-485a-b823-8777fa8d9917",
       "name": "grade calculator"
     },
     {
       "parameters": {
-        "jsCode": "// Merge grade data with price lookup result\nconst gradeData = $('grade calculator').first().json;\nconst priceText = $input.first().json.text || '';\n\nlet priceData = {};\ntry {\n  const cleaned = priceText.replace(/```json\\s*/g, '').replace(/```\\s*/g, '').trim();\n  priceData = JSON.parse(cleaned);\n} catch (e) {\n  priceData = {\n    card_name: 'Unknown',\n    card_set: '',\n    card_number: '',\n    price_low: 0,\n    price_mid: 0,\n    price_high: 0,\n    currency: 'USD'\n  };\n}\n\nreturn [{\n  json: {\n    ...gradeData,\n    card_name:     priceData.card_name    || 'Unknown',\n    card_set:      priceData.card_set     || '',\n    card_number:   priceData.card_number  || '',\n    price_low:     priceData.price_low    || 0,\n    price_mid:     priceData.price_mid    || 0,\n    price_high:    priceData.price_high   || 0,\n    price_currency: priceData.currency    || 'USD'\n  }\n}];\n"
+        "jsCode": "const gradeData = $('grade calculator').first().json;\nconst priceText = $input.first().json.text || '';\n\nlet priceData = {};\ntry {\n  const match = priceText.match(/\\{[\\s\\S]*\\}/);\n  priceData = match ? JSON.parse(match[0]) : {};\n} catch (e) {\n  priceData = {};\n}\n\nreturn [{\n  json: {\n    ...gradeData,\n    card_name:      priceData.card_name     || 'Unknown',\n    card_set:       priceData.card_set      || '',\n    card_number:    priceData.card_number   || '',\n    price_low:      priceData.price_low     || 0,\n    price_mid:      priceData.price_mid     || 0,\n    price_high:     priceData.price_high    || 0,\n    price_currency: priceData.currency      || 'USD',\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [384, 1040],
+      "position": [
+        384,
+        1040
+      ],
       "id": "a2b3c4d5-e6f7-8901-2345-678901234567",
       "name": "merge price data"
     }

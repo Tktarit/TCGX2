@@ -24,6 +24,9 @@ backend/.pytest_cache/
 card3.webp
 code_explanation.md
 agents_overview.txt
+test_*.py
+test_*.png
+test_*.jpg
 
 # OS
 .DS_Store
